@@ -1,0 +1,11 @@
+{
+  "name": "lecteur-info-memo",
+  "private": true,
+  "description": "Lecteur d'info mémo immobilier : extrait les données d'un teaser, d'un info mémo ou d'un mail de broker, sans IA, dans le navigateur.",
+  "type": "module",
+  "scripts": {
+    "build": "python3 assemble.py",
+    "test": "node tests/verifier.mjs"
+  },
+  "dependencies": { "cfb": "1.2.2", "pdfjs-dist": "4.10.38" }
+}

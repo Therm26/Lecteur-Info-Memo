@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecteur d'info mémo · Sourcing Value Add</title>
+<style>
+  :root { --navy:#201676; --navy2:#4A43A3; --pale:#E6E4F5; --line:#D9D9D9; --bg:#F5F6F8; --yellow:#FFF2CC; --grey:#7F7F7F; }
+  * { box-sizing: border-box; }
+  html, body { height:100%; }
+  body { margin:0; font-family: Arial, Helvetica, sans-serif; font-size:13px; color:#1a1a1a; background:var(--bg); display:flex; flex-direction:column; }
+  header { background:var(--navy); color:#fff; padding:10px 20px; display:flex; align-items:baseline; gap:16px; flex-wrap:wrap; }
+  header h1 { font-size:17px; margin:0; }
+  header span { opacity:.8; font-size:12px; }
+  main { flex:1; min-height:0; display:grid; grid-template-columns: 250px minmax(380px, 1fr) minmax(560px, 1.25fr); gap:12px; padding:12px 16px 84px; }
+  @media (max-width: 1250px) { main { grid-template-columns: 230px 1fr; } #colChamps { grid-column: 1 / -1; } }
+  .card { background:#fff; border:1px solid var(--line); border-radius:6px; padding:12px; min-height:0; }
+  .card h2 { font-size:12px; margin:0 0 8px; color:var(--navy); text-transform:uppercase; letter-spacing:.03em; display:flex; justify-content:space-between; align-items:center; }
+  .col { display:flex; flex-direction:column; gap:12px; min-height:0; }
+  #drop { border:2px dashed #A9A5D6; border-radius:6px; padding:18px 8px; text-align:center; cursor:pointer; background:#F8F7FD; color:var(--navy); }
+  #drop.over { background:#ECEAF7; border-color:var(--navy); }
+  #drop b { display:block; font-size:13px; margin-bottom:3px; }
+  textarea, input, select { font:inherit; width:100%; border:1px solid #C9CED6; border-radius:4px; padding:5px 7px; background:#fff; }
+  textarea { resize:vertical; }
+  button { font:inherit; border:0; border-radius:4px; padding:7px 12px; cursor:pointer; background:var(--navy); color:#fff; }
+  button.sec { background:#fff; color:var(--navy); border:1px solid var(--navy); }
+  button:disabled { opacity:.4; cursor:default; }
+  #docs { list-style:none; margin:0; padding:0; overflow:auto; }
+  #docs li { padding:7px 8px; border:1px solid var(--line); border-radius:4px; margin-bottom:6px; cursor:pointer; background:#fff; }
+  #docs li.on { border-color:var(--navy); background:var(--pale); }
+  #docs li .nm { font-weight:bold; font-size:12px; word-break:break-all; }
+  #docs li .st { font-size:11px; color:var(--grey); margin-top:2px; }
+  #docs li .st b { color:#1E5B2C; }
+  #docs li .x { float:right; color:var(--grey); font-weight:bold; padding:0 3px; }
+  #status { font-size:12px; color:var(--grey); min-height:16px; }
+  #status.err { color:#C00000; font-weight:bold; }
+  .tabs { display:flex; gap:4px; }
+  .tabs button { padding:4px 10px; font-size:11px; background:#fff; color:var(--navy); border:1px solid var(--line); }
+  .tabs button.on { background:var(--navy); color:#fff; border-color:var(--navy); }
+  #apercu { overflow:auto; flex:1; background:#E9EAEE; border-radius:4px; padding:8px; }
+  #apercuCard { display:flex; flex-direction:column; }
+  .pg { position:relative; margin:0 auto 10px; box-shadow:0 1px 4px rgba(0,0,0,.25); background:#fff; }
+  .pg canvas { display:block; }
+  .pg .num { position:absolute; top:4px; right:6px; font-size:10px; color:#fff; background:rgba(32,22,118,.7); padding:1px 5px; border-radius:3px; }
+  .hl { position:absolute; border:2px solid #E46C0A; background:rgba(255,192,0,.28); border-radius:2px; pointer-events:none; animation: pulse 1.2s ease-in-out 2; }
+  @keyframes pulse { 50% { background:rgba(255,192,0,.6); } }
+  #texte { white-space:pre-wrap; font-size:11px; overflow:auto; flex:1; background:#FAFAFA; border:1px solid var(--line); padding:8px; border-radius:4px; display:none; }
+  mark { background:#FFE699; }
+  #colChamps { overflow:auto; }
+  table { width:100%; border-collapse:collapse; }
+  #colChamps > table { table-layout:fixed; }
+  #colChamps > table th:nth-child(1) { width:170px; } #colChamps > table th:nth-child(2) { width:34%; } #colChamps > table th:nth-child(3) { width:96px; }
+  .ctx { overflow-wrap:anywhere; }
+  th { text-align:left; font-size:11px; color:#fff; background:var(--navy); padding:6px 7px; position:sticky; top:0; z-index:1; }
+  td { border-bottom:1px solid #EEF0F3; padding:4px 7px; vertical-align:top; }
+  td.lab { width:170px; font-weight:bold; padding-top:9px; font-size:12px; }
+  td.lab small { display:block; font-weight:normal; color:var(--grey); font-size:10.5px; margin-top:2px; }
+  td.val { width:36%; }
+  td.val input, td.val select, td.val textarea { background:var(--yellow); }
+  td.etat { width:96px; white-space:nowrap; }
+  .badge { display:inline-block; font-size:10px; font-weight:bold; padding:2px 7px; border-radius:10px; margin-top:7px; }
+  .b-trouve { background:#C6EFCE; color:#1E5B2C; }
+  .b-verifier { background:#FFEB9C; color:#7A5B00; }
+  .b-vide { background:#EDEDED; color:#666; }
+  .b-nc { background:#DDEBF7; color:#201676; }
+  .b-modif { background:#E2D9F3; color:#4B2C83; }
+  .voir[hidden] { display:none !important; }
+  .voir { display:inline-block; font-size:10.5px; color:var(--navy2); cursor:pointer; margin-left:4px; text-decoration:underline; }
+  .chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
+  .chip { font-size:11px; padding:2px 8px; border-radius:12px; border:1px solid #BDB9E0; background:#F4F3FB; color:var(--navy); cursor:pointer; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chip:hover { background:#E4E2F4; }
+  .ctx { font-size:11px; color:var(--grey); margin-top:3px; }
+  .note { font-size:11px; color:#7A5B00; margin-top:3px; }
+  footer { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--line); padding:10px 20px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; box-shadow:0 -2px 8px rgba(0,0,0,.05); }
+  footer .how { font-size:12px; color:#333; flex:1; min-width:280px; }
+  footer .how b { color:var(--navy); }
+  #copie, #copieTous { font-weight:bold; padding:9px 16px; }
+  #toast { color:#1E5B2C; font-weight:bold; font-size:12px; }
+  .warn { background:#FFF4E5; border:1px solid #F4B183; color:#8A4B08; padding:7px 9px; border-radius:4px; font-size:12px; margin-bottom:8px; display:none; }
+  .alerte { background:#FDE9E9; border:1px solid #E6A1A1; color:#8B1A1A; padding:7px 9px; border-radius:4px; font-size:12px; margin-bottom:8px; display:none; }
+  #apercu.zone .pg { cursor:crosshair; }
+  #apercu.zone .pg canvas { outline:2px dashed #E46C0A; }
+  .sel { position:absolute; border:2px solid #E46C0A; background:rgba(228,108,10,.15); pointer-events:none; }
+  .bloc { border:1px solid var(--line); border-radius:6px; padding:8px 10px; margin-bottom:10px; background:#FBFBFE; }
+  .bloc h3 { font-size:11.5px; margin:0 0 6px; color:var(--navy); text-transform:uppercase; letter-spacing:.03em; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .bloc h3 small { text-transform:none; letter-spacing:0; color:var(--grey); font-weight:normal; }
+  #photoBox { display:flex; gap:12px; align-items:flex-start; }
+  #photoImg { max-width:260px; max-height:150px; border:1px solid var(--line); border-radius:3px; background:#eee; }
+  #photoBox .act { display:flex; flex-direction:column; gap:6px; font-size:11.5px; color:#333; }
+  #photoBox button { padding:5px 10px; font-size:12px; }
+  table.el { font-size:11.5px; }
+  table.el th { position:static; background:#E6E4F5; color:var(--navy); font-size:10.5px; padding:4px 6px; }
+  table.el td { padding:3px 6px; border-bottom:1px solid #EEF0F3; }
+  table.el td.n { text-align:right; white-space:nowrap; }
+  table.el tr.vac td { color:var(--grey); font-style:italic; }
+  .petit { font-size:11px; color:var(--grey); }
+  header .hbtn { margin-left:auto; display:flex; gap:8px; align-items:center; font-size:11.5px; }
+  header .hbtn button { padding:4px 10px; font-size:12px; background:#fff; color:var(--navy); border:0; }
+  header .hbtn #btnAide { font-weight:bold; width:28px; padding:4px 0; border-radius:14px; }
+  .modal { position:fixed; inset:0; background:rgba(20,16,60,.45); display:none; align-items:flex-start; justify-content:center; z-index:50; padding:40px 16px; overflow:auto; }
+  .modal.on { display:flex; }
+  .modal .box { background:#fff; border-radius:8px; max-width:860px; width:100%; padding:20px 24px; box-shadow:0 10px 40px rgba(0,0,0,.25); }
+  .modal h2 { margin:0 0 4px; color:var(--navy); font-size:18px; }
+  .modal h3 { color:var(--navy); font-size:13.5px; margin:16px 0 4px; }
+  .modal p, .modal li { font-size:12.5px; line-height:1.5; margin:4px 0; }
+  .modal ol, .modal ul { padding-left:20px; margin:4px 0; }
+  .modal .fermer { float:right; background:#fff; color:var(--navy); border:1px solid var(--navy); }
+  .modal textarea { font-size:11.5px; }
+  .modal .ligne { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; align-items:center; }
+  .vide { color:var(--grey); font-size:12px; text-align:center; padding:30px 10px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Lecteur d'info mémo · Sourcing Value Add</h1>
+
+  <span>Les PDF sont lus sur ton ordinateur et ne sont envoyés nulle part. Aucune IA : les valeurs sont repérées par leur format, à vérifier avant de copier.</span>
+  <span class="hbtn"><span id="listesInfo"></span><button class="sec" id="btnListes">Listes et contacts</button><button class="sec" id="btnAide" title="Mode d'emploi">?</button></span>
+</header>
+<main>
+  <section class="col">
+    <div class="card">
+      <h2>1. Documents</h2>
+      <div id="drop"><b>Glisse des PDF ou des mails</b>PDF, mails Outlook (.msg) ou .eml · ou clique pour choisir</div>
+      <input type="file" id="file" accept="application/pdf,.pdf,.msg,.eml" multiple hidden>
+      <p class="petit" style="margin:6px 0 0">Mail Outlook : glisse-le d'abord d'Outlook vers le Bureau (ou Fichier › Enregistrer sous), puis glisse le fichier ici. Le texte du mail et ses PDF joints sont lus ensemble.</p>
+      <p style="margin:10px 0 5px;color:var(--grey);font-size:12px">Ou colle le texte d'un mail :</p>
+      <textarea id="mail" rows="4" placeholder="Texte du mail du broker…"></textarea>
+      <button class="sec" id="analyserMail" style="margin-top:6px;width:100%">Analyser le texte</button>
+      <div id="status" style="margin-top:8px"></div>
+    </div>
+    <div class="card" style="flex:1;overflow:auto">
+      <h2>Dossiers chargés <span id="nbDocs" style="font-weight:normal;color:var(--grey)"></span></h2>
+      <ul id="docs"></ul>
+    </div>
+  </section>
+  <section class="card col" id="apercuCard" style="gap:8px">
+    <h2>2. Le document <span class="tabs"><button id="tA" class="on">Aperçu</button><button id="tT">Texte</button></span></h2>
+    <input id="cherche" placeholder="Chercher dans le texte (loyer, m², offre…)" style="display:none">
+    <div id="apercu"><div class="vide">L'aperçu du PDF s'affichera ici. Clique sur « voir » à côté d'un champ pour retrouver l'endroit où la valeur a été lue.</div></div>
+    <div id="texte"></div>
+  </section>
+  <section class="card" id="colChamps">
+    <h2>3. Vérifie et complète</h2>
+    <div class="bloc" id="blocPhoto" style="display:none">
+      <h3>Photo <small id="photoInfo"></small></h3>
+      <div id="photoBox"><img id="photoImg" alt=""><div id="photoVide" class="petit" style="width:260px;padding:10px;border:1px dashed var(--line);border-radius:3px;display:none"></div>
+        <div class="act"><button id="photoCopie">Copier la photo</button><button class="sec" id="photoAutre">Autre image</button><button class="sec" id="photoZone">Choisir une zone dans l'aperçu</button><button class="sec" id="photoDl">Télécharger</button>
+        <span>Dans Excel : clique la cellule <b>Photo</b> (colonne L), Ctrl+V, puis clic droit sur l'image → <b>Placer dans la cellule</b>.</span></div>
+      </div>
+    </div>
+    <div class="bloc" id="blocEL" style="display:none">
+      <h3>État locatif lu <small id="elInfo"></small></h3>
+      <div id="elTable"></div>
+    </div>
+    <div class="warn" id="warnFiche" style="background:#EEF0FA;border-color:#A9A5D6;color:#201676"></div>
+    <div class="warn" id="warnAlertes"></div>
+    <div class="warn" id="warnScan">Le PDF ne contient presque pas de texte : c'est sans doute un scan ou des images. Les champs doivent être remplis à la main.</div>
+    <table>
+      <thead><tr><th>Champ</th><th>Valeur</th><th>État</th><th>Autres valeurs trouvées (clic pour choisir)</th></tr></thead>
+      <tbody id="champs"></tbody>
+    </table>
+  </section>
+</main>
+<div class="modal" id="mListes"><div class="box">
+  <button class="fermer" data-ferme>Fermer</button>
+  <h2>Listes et contacts</h2>
+  <p>Le lecteur propose les valeurs des listes de l'Excel (statuts, apporteurs, véhicules…) et reconnaît les contacts brokers. Quand l'Excel change, mets-les à jour ici, sans toucher au code.</p>
+  <h3>1. Onglet Listes de l'Excel</h3>
+  <p>Ouvre l'onglet <b>Listes</b>, fais <b>Ctrl+A</b> puis <b>Ctrl+C</b>, et colle ici. Les colonnes sont reconnues par leur titre (Statuts, Typologies, Apporteurs…).</p>
+  <textarea id="lstTxt" rows="4" placeholder="Colle ici tout l'onglet Listes…"></textarea>
+  <h3>2. Contacts brokers (facultatif)</h3>
+  <p>Deux colonnes <b>Société</b> et <b>Nom</b> (ou Société, Prénom, Nom), en-tête compris. Le collage remplace la liste actuelle.</p>
+  <textarea id="ctcTxt" rows="3" placeholder="Société	Nom&#10;Colliers	Marc LEROY"></textarea>
+  <div class="ligne"><button id="lstAppliquer">Appliquer</button><span class="petit" id="lstEtat"></span></div>
+  <h3>3. Partager avec l'équipe</h3>
+  <p>« Appliquer » ne vaut que pour ce navigateur. Pour que tout le monde en profite, télécharge le lecteur à jour et remplace le fichier sur le serveur.</p>
+  <div class="ligne"><button class="sec" id="lstTelecharger">Télécharger le lecteur à jour</button><button class="sec" id="lstReset">Revenir aux listes du fichier</button></div>
+  <p class="petit" id="lstResume" style="margin-top:12px"></p>
+</div></div>
+
+<div class="modal" id="mAide"><div class="box">
+  <button class="fermer" data-ferme>Fermer</button>
+  <h2>Mode d'emploi</h2>
+  <p>Le lecteur remplit une ligne de l'onglet <b>Base opportunités</b> à partir d'un info mémo, d'un teaser ou d'un mail de broker. Il ne contient aucune IA : il repère les valeurs par leur format et leurs mots-clés. Rien n'est envoyé sur internet. Relis toujours avant de coller.</p>
+  <h3>1. Charger un document</h3>
+  <ul>
+    <li>Glisse un ou plusieurs <b>PDF</b> dans la zone en haut à gauche, ou clique dessus pour les choisir.</li>
+    <li>Pour un <b>mail Outlook</b> : glisse-le d'abord d'Outlook vers le Bureau (ou Fichier › Enregistrer sous), puis glisse le fichier .msg ici. Le texte du mail et ses PDF joints sont lus ensemble ; le prix, la date limite et le mode cités dans le mail passent avant ceux du PDF.</li>
+    <li>Tu peux aussi coller le texte d'un mail dans la case prévue.</li>
+    <li>Un document qui présente plusieurs opportunités (une par page) donne un dossier par page.</li>
+  </ul>
+  <h3>2. Vérifier les champs</h3>
+  <ul>
+    <li><b>Trouvé</b> : valeur repérée avec un libellé clair. <b>À vérifier</b> : valeur probable, à contrôler. <b>Non trouvé</b> : à remplir à la main. <b>Modifié</b> : tu l'as changée.</li>
+    <li><b>voir</b> surligne l'endroit du PDF où la valeur a été lue. Les pastilles à droite sont d'autres valeurs trouvées : un clic les choisit.</li>
+    <li>La <b>description</b> est rédigée à partir des champs. Après une correction, clique sur <b>Rédiger à nouveau</b>.</li>
+    <li>Prix : la colonne attend un prix <b>hors droits</b>. Un prix « acte en main » est signalé, à convertir.</li>
+  </ul>
+  <h3>3. Copier dans Excel</h3>
+  <ol>
+    <li>Clique sur <b>Copier ce dossier</b> (ou <b>Copier tous les dossiers</b>).</li>
+    <li>Dans l'onglet <b>Base opportunités</b>, clique sur la colonne <b>A</b> de la première ligne vide, puis <b>Ctrl+V</b>. La ligne se remplit de A (Statut) à AF (Dossier serveur).</li>
+    <li>Complète <b>Resp.</b> (tes initiales), le taux AEM et les frais d'acquisition dans l'Excel.</li>
+  </ol>
+  <h3>4. Ajouter la photo</h3>
+  <p>Le bloc <b>Photo</b>, en haut à droite, propose les images trouvées dans le document (<b>Autre image</b> pour en changer). Si aucune ne convient, clique sur <b>Choisir une zone dans l'aperçu</b> et trace un rectangle sur la photo dans le PDF. Ensuite : <b>Copier la photo</b>, puis dans Excel clique la cellule de la colonne <b>L</b> de la ligne, <b>Ctrl+V</b>, clic droit sur l'image › <b>Placer dans la cellule</b>.</p>
+  <h3>5. État locatif</h3>
+  <p>Si le document contient un tableau des locataires, il s'affiche en haut à droite. Le loyer total, le taux d'occupation et la WALB (pondérée par les loyers) en sont tirés.</p>
+  <h3>6. Listes et contacts</h3>
+  <p>Quand l'onglet Listes de l'Excel change (nouveau broker, nouveau véhicule…), mets le lecteur à jour avec le bouton <b>Listes et contacts</b> en haut à droite, puis remplace le fichier partagé par la version téléchargée.</p>
+  <h3>Limites</h3>
+  <ul>
+    <li>Les PDF scannés (images sans texte) ne sont pas lus : le lecteur le signale.</li>
+    <li>Un logo ne se lit pas : si le broker n'apparaît qu'en logo, l'apporteur reste vide.</li>
+    <li>Le fichier contient la liste des contacts brokers : usage interne uniquement.</li>
+  </ul>
+</div></div>
+
+<footer>
+  <button id="copie">Copier ce dossier</button>
+  <button id="copieTous" class="sec">Copier tous les dossiers</button>
+  <div class="how">Dans Excel : onglet <b>Base opportunités</b>, clique sur la <b>colonne A</b> (Statut) de la <b>première ligne vide</b>, puis <b>Ctrl+V</b>. Une ligne par dossier se remplit, de A (Statut) à AF (Dossier serveur).</div>
+  <span id="toast"></span>
+  <button class="sec" id="reset">Tout effacer</button>
+</footer>
+
+<!-- Listes de l'Excel (statuts, apporteurs, contacts…). Mises à jour par le bouton « Listes et contacts ». -->
+<script type="application/json" id="data-listes">__DATA_JSON__</script>
+<script type="module">
+/* =====================================================================
+   LECTEUR D'INFO MÉMO · code du lecteur (lisible et modifiable)
+   - Colonnes copiées vers la Base : chercher ORDRE_BASE
+   - Champs affichés : chercher CHAMPS
+   - Brokers reconnus et leurs écritures : chercher BROKERS
+   - Règles de lecture des PDF : fonction extraire()
+   Les bibliothèques en bas du fichier (pdf.js, cfb) ne se modifient pas.
+   ===================================================================== */
+const SOURCE = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;   // copie du fichier, pour produire une version à jour
+const DATA = JSON.parse(document.getElementById("data-listes").textContent);
+let LISTES_LOCALES = null;
+try { LISTES_LOCALES = JSON.parse(localStorage.getItem("lecteurIM_listes") || "null"); } catch {}
+if (LISTES_LOCALES?.listes) { Object.assign(DATA, LISTES_LOCALES.listes); if (LISTES_LOCALES.contacts?.length) DATA.Contacts = LISTES_LOCALES.contacts; }
+
+__EXTRACT_JS__
+
+const MAIL = (() => {
+__MAIL_JS__
+  return { lireMail };
+})();
+
+// ---------- champs affichés (dans l'ordre de la Base)
+const CHAMPS = [
+  ["statut", "Statut", "liste:Statuts"],
+  ["date", "Date de réception", "date"], ["nom", "Nom de projet", "texte", "Nom commercial seulement, sinon vide"],
+  ["adr", "Adresse", "texte"], ["cp", "CP", "texte"], ["ville", "Ville", "texte"],
+  ["secteur", "Secteur", "liste:Secteurs"], ["typo", "Typologie", "liste:Typologies"],
+  ["surf", "Surface (m²)", "nombre"], ["regime", "Régime de détention", "liste:Régime de détention"],
+  ["comm", "Description de l'actif", "long", "Rédigée à partir des champs, à relire"],
+  ["sitloc", "Situation locative", "liste:Situation locative"], ["occ", "Taux d'occupation", "pct"],
+  ["loyer", "Loyer en place (€ HT / an)", "euros", "Revenus nets de préférence"], ["vlm", "Loyer potentiel / VLM (€ / an)", "euros"],
+  ["walb", "WALB (ans)", "nombre"], ["prix", "Prix demandé (€ HD)", "euros", "Hors droits. Vide si non communiqué"],
+  ["cible", "Notre prix cible (€ HD)", "euros"], ["capex", "Capex estimés (€)", "euros"],
+  ["app", "Apporteur", "apporteur"], ["dl", "Date limite d'offre", "date"], ["vendeur", "Vendeur", "texte"],
+  ["contact", "Contact apporteur", "texte"], ["mode", "Mode de commercialisation", "liste:Mode de commercialisation"],
+  ["vehic", "Véhicule d'investissement", "liste:Véhicule d'investissement"],
+  ["resp", "Resp.", "texte", "Initiales"],
+  ["angle", "Angle value add", "texte"], ["next", "Commentaire", "texte"],
+  ["motif", "Motif d'écart", "liste:Motif d'écart"], ["path", "Dossier serveur", "texte"],
+];
+// ORDRE DES COLONNES COPIÉES VERS LA BASE, de la colonne A à la colonne AF.
+// Une clé par colonne, dans l'ordre de l'Excel. Les clés sont celles de CHAMPS ci-dessus.
+// Pour une colonne que le lecteur ne remplit pas, mets "-" : elle sera collée vide.
+// Si une colonne est ajoutée ou déplacée dans la Base, modifie cette liste dans le même ordre.
+const ORDRE_BASE = ["statut", "id", "date", "nom", "adr", "cp", "ville", "secteur", "typo", "surf", "regime", "photo", "comm",
+  "sitloc", "occ", "loyer", "vlm", "walb", "prix", "cible", "capex", "app", "dl", "vendeur", "contact", "mode", "vehic",
+  "resp", "angle", "next", "motif", "path"];
+const TYPES = Object.fromEntries(CHAMPS.map(([k, , t]) => [k, t]));
+const BADGES = { trouve: ["b-trouve", "Trouvé"], verifier: ["b-verifier", "À vérifier"], vide: ["b-vide", "Non trouvé"], nc: ["b-nc", "Non communiqué"], modif: ["b-modif", "Modifié"] };
+const $ = (s) => document.querySelector(s);
+const tbody = $("#champs");
+
+// ---------- état : un objet par dossier
+const docs = [];   // {nom, res, vals:{k:v}, etats:{k:st}, pdf, texte}
+let cur = -1;
+
+const fmtNum = (v, dec = 0) => v === "" || v == null || isNaN(v) ? "" : Number(v).toLocaleString("fr-FR", { maximumFractionDigits: dec });
+function parseNum(s) {
+  if (s == null) return "";
+  let t = String(s).trim().toLowerCase().replace(/[\s  €]/g, "");
+  if (!t) return "";
+  let mult = 1;
+  if (/m$|m€$|millions?$/.test(t)) { mult = 1e6; t = t.replace(/(m€|m|millions?)$/, ""); }
+  else if (/k$/.test(t)) { mult = 1e3; t = t.slice(0, -1); }
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(t)) t = t.replace(/\./g, "");
+  t = t.replace(",", ".");
+  const v = parseFloat(t);
+  return isNaN(v) ? "" : v * mult;
+}
+function display(type, v) {
+  if (v === "" || v == null) return "";
+  if (type === "euros") return fmtNum(v) + " €";
+  if (type === "pct") return fmtNum(v * 100, 1) + " %";
+  if (type === "nombre") return fmtNum(v, 2);
+  return String(v);
+}
+
+function construireTable() {
+  tbody.innerHTML = "";
+  for (const [k, lab, type, aide] of CHAMPS) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="lab">${lab}${aide ? `<small>${aide}</small>` : ""}</td><td class="val"></td><td class="etat"><span class="badge b-vide" id="b-${k}">Non trouvé</span><span class="voir" id="v-${k}" hidden>voir</span></td><td><div class="chips" id="c-${k}"></div><div class="ctx" id="x-${k}"></div><div class="note" id="n-${k}"></div></td>`;
+    const td = tr.querySelector(".val");
+    if (k === "comm") {
+      const bt = document.createElement("button"); bt.className = "sec"; bt.id = "rediger"; bt.textContent = "Rédiger à nouveau";
+      bt.title = "Réécrit la description à partir des valeurs actuelles des champs";
+      bt.style.cssText = "margin-top:6px;padding:3px 8px;font-size:11px";
+      bt.onclick = redigerDepuisChamps;
+      tr.querySelector(".lab").appendChild(bt);
+    }
+    let el;
+    if (type.startsWith("liste:")) {
+      el = document.createElement("select");
+      el.innerHTML = `<option value=""></option>` + (DATA[type.slice(6)] || []).map((v) => `<option>${v}</option>`).join("");
+    } else if (type === "long") { el = document.createElement("textarea"); el.rows = 7; }
+    else { el = document.createElement("input"); if (type === "apporteur") el.setAttribute("list", "dl-app"); }
+    el.id = `f-${k}`;
+    el.addEventListener("input", () => { setBadge(k, "modif"); sauver(); });
+    el.addEventListener("change", sauver);
+    td.appendChild(el);
+    tbody.appendChild(tr);
+  }
+  const dl = document.createElement("datalist"); dl.id = "dl-app";
+  dl.innerHTML = (DATA.Apporteurs || []).map((a) => `<option value="${a}">`).join("");
+  document.body.appendChild(dl);
+  viderChamps();
+}
+function viderChamps() {
+  for (const [k] of CHAMPS) {
+    $(`#f-${k}`).value = ""; setBadge(k, "vide", false); $(`#c-${k}`).innerHTML = ""; $(`#x-${k}`).textContent = ""; $(`#n-${k}`).textContent = ""; $(`#v-${k}`).hidden = true;
+  }
+  $("#f-statut").value = "1 - Nouveau";
+  if (modeZone) finZone();
+  for (const id of ["#blocPhoto", "#blocEL", "#warnFiche", "#warnAlertes"]) { const e = $(id); if (e) e.style.display = "none"; }
+  $("#f-date").value = new Date().toLocaleDateString("fr-FR");
+}
+function setBadge(k, st, garder = true) {
+  const b = $(`#b-${k}`); const [cls, txt] = BADGES[st] || BADGES.vide; b.className = `badge ${cls}`; b.textContent = txt;
+  if (garder && cur >= 0 && st === "modif") docs[cur].etats[k] = st;
+}
+function sauver() {
+  if (cur < 0) return;
+  for (const [k] of CHAMPS) docs[cur].vals[k] = $(`#f-${k}`).value;
+  const li = document.querySelectorAll("#docs li")[cur];   // mise à jour du titre sans reconstruire la liste
+  if (li) li.querySelector(".nm").textContent = docs[cur].vals.nom || docs[cur].vals.adr || docs[cur].nom;
+}
+
+// ---------- photo : images placées sur les premières pages (ou la page de la fiche)
+const mulM = (m, n) => [m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1], m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3], m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5]];
+const boiteM = (m, x0, y0, x1, y1) => { const p = [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([x, y]) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]]); return [Math.min(...p.map((q) => q[0])), Math.min(...p.map((q) => q[1])), Math.max(...p.map((q) => q[0])), Math.max(...p.map((q) => q[1]))]; };
+const interB = (a, b) => [Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.min(a[2], b[2]), Math.min(a[3], b[3])];
+async function imagesDePage(pdf, n) {
+  const page = await pdf.getPage(n);
+  const O = pdfjs.OPS, ops = await page.getOperatorList();
+  const vb = page.view, aire = (vb[2] - vb[0]) * (vb[3] - vb[1]), haut = vb[3] - vb[1];
+  // on suit la matrice courante et la zone de découpe (les mises en page recadrent souvent les photos)
+  let st = { ctm: [1, 0, 0, 1, 0, 0], clip: [...vb] }; const pile = []; let dernier = null; const res = [];
+  const imgOps = new Set([O.paintImageXObject, O.paintInlineImageXObject, O.paintImageXObjectRepeat, O.paintJpegXObject].filter((x) => x != null));
+  for (let i = 0; i < ops.fnArray.length; i++) {
+    const fn = ops.fnArray[i], a = ops.argsArray[i];
+    if (fn === O.save) pile.push({ ...st });
+    else if (fn === O.restore) st = pile.pop() || st;
+    else if (fn === O.transform) st.ctm = mulM(st.ctm, a);
+    else if (fn === O.constructPath) { const mm = a?.[2]; dernier = mm && mm.length === 4 && mm.every(isFinite) ? boiteM(st.ctm, ...mm) : null; }
+    else if ((fn === O.clip || fn === O.eoClip) && dernier) st.clip = interB(st.clip, dernier);
+    else if (fn === O.paintFormXObjectBegin) { pile.push({ ...st }); if (a?.[0]) st.ctm = mulM(st.ctm, a[0]); if (a?.[1]) st.clip = interB(st.clip, boiteM(st.ctm, ...a[1])); }
+    else if (fn === O.paintFormXObjectEnd) st = pile.pop() || st;
+    else if (imgOps.has(fn)) {
+      const [x0, y0, x1, y1] = interB(boiteM(st.ctm, 0, 0, 1, 1), st.clip);
+      const w = x1 - x0, h = y1 - y0;
+      if (w < 60 || h < 45 || w * h < aire * 0.025 || w / h > 5 || h / w > 3.5) continue;
+      if (res.some((r) => Math.abs(r.x0 - x0) < 3 && Math.abs(r.y0 - y0) < 3 && Math.abs(r.x1 - x1) < 3)) continue;
+      // les vues extérieures sont en général en haut de page : bonus de position
+      res.push({ page: n, x0, y0, x1, y1, aire: w * h, score: w * h * (0.6 + 0.8 * ((y0 + y1) / 2 - vb[1]) / haut) });
+    }
+  }
+  return res;
+}
+async function rognerImage(pdf, im) {
+  const page = await pdf.getPage(im.page);
+  const base = page.getViewport({ scale: 1 });
+  const vp = page.getViewport({ scale: Math.min(4, 1100 / Math.max(60, im.x1 - im.x0)) });
+  const r = vp.convertToViewportRectangle([im.x0, im.y0, im.x1, im.y1]);
+  const cx = Math.max(0, Math.min(r[0], r[2])), cy = Math.max(0, Math.min(r[1], r[3])), cw = Math.min(vp.width - cx, Math.abs(r[2] - r[0])), ch = Math.min(vp.height - cy, Math.abs(r[3] - r[1]));
+  const full = document.createElement("canvas"); full.width = Math.ceil(vp.width); full.height = Math.ceil(vp.height);
+  await page.render({ canvasContext: full.getContext("2d"), viewport: vp }).promise;
+  const k = Math.min(1, 1000 / cw);
+  const c = document.createElement("canvas"); c.width = Math.round(cw * k); c.height = Math.round(ch * k);
+  c.getContext("2d").drawImage(full, cx, cy, cw, ch, 0, 0, c.width, c.height);
+  return c;
+}
+async function preparerPhotos(d) {
+  if (!d.pdf || d.photos) return;
+  d.photos = []; d.iPhoto = 0;
+  const pages = d.res.pageSource ? [d.res.pageSource] : [...Array(Math.min(5, d.pdf.numPages)).keys()].map((i) => i + 1);
+  for (const n of pages) {
+    const ims = (await imagesDePage(d.pdf, n)).sort((a, b) => b.score - a.score);
+    d.photos.push(...ims);
+  }
+}
+function etatPhoto(msg) {
+  const has = !msg;
+  $("#photoImg").style.display = has ? "" : "none";
+  $("#photoVide").style.display = has ? "none" : "block";
+  if (msg) $("#photoVide").textContent = msg;
+  for (const id of ["#photoCopie", "#photoDl"]) $(id).disabled = !has;
+}
+async function afficherPhoto() {
+  const d = docs[cur], bloc = $("#blocPhoto");
+  if (!d || !d.pdf) { bloc.style.display = "none"; return; }
+  bloc.style.display = "block";
+  $("#photoAutre").disabled = true;
+  try {
+    if (!d.photos) { etatPhoto("Recherche des images du document…"); $("#photoInfo").textContent = ""; }
+    await preparerPhotos(d);
+    if (docs[cur] !== d) return;
+    if (!d.photos.length) {
+      etatPhoto("Aucune photo repérée automatiquement dans ce document. Clique sur « Choisir une zone dans l'aperçu », puis trace un rectangle sur la photo.");
+      $("#photoInfo").textContent = ""; return;
+    }
+    const im = d.photos[d.iPhoto];
+    if (!im.url) { const c = await rognerImage(d.pdf, im); im.canvas = c; im.url = c.toDataURL("image/jpeg", 0.85); }
+    if (docs[cur] !== d) return;
+    etatPhoto(null);
+    $("#photoImg").src = im.url;
+    $("#photoInfo").textContent = `${im.manuelle ? "zone choisie" : `image ${d.iPhoto + 1} sur ${d.photos.filter((x) => !x.manuelle).length}`} · page ${im.page}`;
+    $("#photoAutre").disabled = d.photos.length < 2;
+  } catch (e) {
+    console.error(e);
+    if (docs[cur] === d) etatPhoto("Les images de ce PDF n'ont pas pu être extraites. Clique sur « Choisir une zone dans l'aperçu », puis trace un rectangle sur la photo.");
+  }
+}
+// sélection manuelle : rectangle tracé sur l'aperçu
+let modeZone = false;
+function finZone() { modeZone = false; $("#apercu").classList.remove("zone"); document.querySelectorAll(".sel").forEach((x) => x.remove()); }
+$("#photoZone").onclick = () => {
+  if (!docs[cur]?.pdf) return;
+  montrer("apercu");
+  modeZone = true; $("#apercu").classList.add("zone");
+  status("Trace un rectangle sur la photo dans l'aperçu (Échap pour annuler).");
+};
+$("#apercu").addEventListener("mousedown", (e) => {
+  if (!modeZone) return;
+  const wrap = e.target.closest(".pg"); if (!wrap) return;
+  e.preventDefault();
+  const n = rendu.pages.findIndex((p) => p && p.wrap === wrap); if (n < 0) return;
+  const r0 = wrap.getBoundingClientRect(), x0 = e.clientX - r0.left, y0 = e.clientY - r0.top;
+  const sel = document.createElement("div"); sel.className = "sel"; wrap.appendChild(sel);
+  const bouge = (ev) => {
+    const x = Math.max(0, Math.min(r0.width, ev.clientX - r0.left)), y = Math.max(0, Math.min(r0.height, ev.clientY - r0.top));
+    Object.assign(sel.style, { left: Math.min(x, x0) + "px", top: Math.min(y, y0) + "px", width: Math.abs(x - x0) + "px", height: Math.abs(y - y0) + "px" });
+  };
+  const lache = async (ev) => {
+    document.removeEventListener("mousemove", bouge); document.removeEventListener("mouseup", lache);
+    const x1 = Math.max(0, Math.min(r0.width, ev.clientX - r0.left)), y1 = Math.max(0, Math.min(r0.height, ev.clientY - r0.top));
+    finZone();
+    if (Math.abs(x1 - x0) < 15 || Math.abs(y1 - y0) < 15) { status("Zone trop petite : recommence en traçant un rectangle sur la photo.", true); return; }
+    const vp = rendu.pages[n].vp;
+    const [ax, ay] = vp.convertToPdfPoint(x0, y0), [bx, by] = vp.convertToPdfPoint(x1, y1);
+    const d = docs[cur];
+    const im = { page: n, x0: Math.min(ax, bx), y0: Math.min(ay, by), x1: Math.max(ax, bx), y1: Math.max(ay, by), manuelle: true };
+    d.photos = (d.photos || []).filter((x) => !x.manuelle); d.photos.unshift(im); d.iPhoto = 0;
+    status("Zone choisie : clique sur « Copier la photo ».");
+    await afficherPhoto();
+  };
+  document.addEventListener("mousemove", bouge); document.addEventListener("mouseup", lache);
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && modeZone) { finZone(); status(""); } });
+$("#photoAutre").onclick = () => { const d = docs[cur]; if (!d?.photos?.length) return; d.iPhoto = (d.iPhoto + 1) % d.photos.length; afficherPhoto(); };
+$("#photoCopie").onclick = async () => {
+  const d = docs[cur], im = d?.photos?.[d.iPhoto]; if (!im?.canvas) return;
+  try {
+    const blob = await new Promise((ok) => im.canvas.toBlob(ok, "image/png"));
+    await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+    window.__photoCopiee = true;
+    const t = $("#toast"); t.textContent = "Photo copiée : colle-la dans la colonne Photo."; setTimeout(() => (t.textContent = ""), 6000);
+  } catch (e) { status("Le navigateur refuse la copie d'image : utilise « Télécharger » puis insère l'image dans Excel.", true); }
+};
+$("#photoDl").onclick = () => {
+  const d = docs[cur], im = d?.photos?.[d.iPhoto]; if (!im?.url) return;
+  const a = document.createElement("a"); a.href = im.canvas.toDataURL("image/jpeg", 0.9);
+  a.download = ((d.vals.nom || d.vals.adr || "photo").replace(/[^\p{L}\d -]/gu, "").trim() || "photo") + ".jpg"; a.click();
+};
+
+// ---------- état locatif
+function afficherEL() {
+  const E = docs[cur]?.res.etatLocatif, bloc = $("#blocEL");
+  if (!E) { bloc.style.display = "none"; return; }
+  bloc.style.display = "block";
+  const f = (v, d = 0) => (v == null || v === "" ? "" : Number(v).toLocaleString("fr-FR", { maximumFractionDigits: d }));
+  const resume = [`${E.nbLocataires} locataire${E.nbLocataires > 1 ? "s" : ""}`];
+  if (E.occ != null) resume.push(`occupation ${f(E.occ * 100)} %`);
+  if (E.walb != null) resume.push(`WALB ${f(E.walb, 2)} ans`);
+  if (E.walt != null) resume.push(`WALT ${f(E.walt, 2)} ans`);
+  $("#elInfo").innerHTML = `page ${E.page} · ${resume.join(" · ")} <span class="voir" id="elVoir">voir</span>`;
+  $("#elVoir").onclick = () => surligner(E.loc);
+  const lignes = E.locataires.map((x) => `<tr class="${x.vacant ? "vac" : ""}"><td>${esc(x.nom)}</td><td class="n">${f(x.surf)}</td><td class="n">${x.loyer ? f(x.loyer) + " €" : ""}</td><td>${x.ech || ""}</td><td>${x.fin || ""}</td></tr>`).join("");
+  const tot = E.loyerTot ? `<tr><td><b>Total</b></td><td class="n"><b>${f(E.surfTot)}</b></td><td class="n"><b>${f(E.loyerTot)} €</b></td><td colspan="2" class="petit">${E.walb != null ? "WALB : " + esc(E.walbSource) : ""}</td></tr>` : "";
+  $("#elTable").innerHTML = `<table class="el"><thead><tr><th>Locataire</th><th>m²</th><th>Loyer / an</th><th>Proch. échéance</th><th>Fin de bail</th></tr></thead><tbody>${lignes}${tot}</tbody></table>`;
+}
+
+// réécrit la description avec les valeurs saisies (après correction des champs)
+function redigerDepuisChamps() {
+  if (cur < 0) return;
+  const v = {};
+  for (const [k, , type] of CHAMPS) {
+    const t = $(`#f-${k}`).value;
+    if (type === "euros" || type === "nombre") v[k] = parseNum(t);
+    else if (type === "pct") { let n = parseNum(t.replace("%", "")); v[k] = n === "" ? "" : n > 1 ? n / 100 : n; }
+    else v[k] = t;
+  }
+  const txt = rediger(v, docs[cur].res.faits || {});
+  if (!txt) { status("Pas assez d'informations pour rédiger : remplis au moins la surface ou l'adresse.", true); return; }
+  $("#f-comm").value = txt; setBadge("comm", "modif"); sauver();
+}
+
+// remplit le formulaire pour le dossier courant
+function afficherDossier() {
+  viderChamps();
+  if (cur < 0) return;
+  const d = docs[cur], res = d.res;
+  for (const [k, , type] of CHAMPS) {
+    const r = res.champs[k] || { value: "", candidates: [], status: "vide" };
+    const el = $(`#f-${k}`);
+    el.value = d.vals[k] ?? display(type, r.value);
+    if (el.tagName === "SELECT" && el.value && ![...el.options].some((o) => o.value === el.value)) el.value = "";
+    setBadge(k, d.etats[k] || r.status, false);
+    $(`#n-${k}`).textContent = r.note || "";
+    const voir = $(`#v-${k}`);
+    voir.hidden = !(r.loc && d.pdf);
+    voir.onclick = () => surligner(r.loc);
+    $(`#x-${k}`).textContent = r.candidates?.[0]?.ctx ? "« " + r.candidates[0].ctx + " »" : "";
+    const chips = $(`#c-${k}`);
+    for (const c of r.candidates || []) {
+      if (String(c.value) === String(r.value) && r.candidates.length === 1) continue;
+      const b = document.createElement("span"); b.className = "chip"; b.textContent = c.label; b.title = c.ctx || "";
+      b.onclick = () => {
+        if (k === "comm") el.value = (el.value ? el.value + " " : "") + c.value;
+        else el.value = display(type, c.value);
+        setBadge(k, "modif"); sauver();
+        $(`#x-${k}`).textContent = c.ctx ? "« " + c.ctx + " »" : "";
+        if (c.loc && d.pdf) surligner(c.loc);
+      };
+      chips.appendChild(b);
+    }
+  }
+  $("#warnScan").style.display = res.nbCaracteres < 200 ? "block" : "none";
+  const wf = $("#warnFiche");
+  wf.textContent = res.pageSource ? `Fiche lue en page ${res.pageSource} d'un document qui présente ${res.nbFiches} opportunités : chaque page est devenue un dossier. Apporteur et contact viennent du document entier.` : "";
+  wf.style.display = res.pageSource ? "block" : "none";
+  const wa = $("#warnAlertes");
+  wa.innerHTML = (res.alertes || []).map((a) => esc(a)).join("<br>");
+  wa.style.display = res.alertes?.length ? "block" : "none";
+  for (const [k] of CHAMPS) d.vals[k] = $(`#f-${k}`).value;
+  afficherEL(); afficherPhoto();
+}
+
+// ---------- liste des dossiers
+function majListe() {
+  const ul = $("#docs"); ul.innerHTML = "";
+  docs.forEach((d, i) => {
+    const n = Object.values(d.res.champs).filter((c) => c.value !== "" && c.value != null).length;
+    const titre = d.vals.nom || d.vals.adr || d.nom;
+    const li = document.createElement("li"); if (i === cur) li.className = "on";
+    li.innerHTML = `<span class="x" title="Retirer">×</span><div class="nm"></div><div class="st"><b>${n}</b> champs proposés · ${d.nom.length > 28 ? d.nom.slice(0, 26) + "…" : d.nom}</div>`;
+    li.querySelector(".nm").textContent = titre;
+    li.onclick = (e) => {
+      if (e.target.classList.contains("x")) { docs.splice(i, 1); cur = Math.min(cur, docs.length - 1); afficherDossier(); rendreApercu(); majListe(); return; }
+      if (i !== cur) { sauver(); cur = i; afficherDossier(); rendreApercu(); majListe(); }
+    };
+    ul.appendChild(li);
+  });
+  $("#nbDocs").textContent = docs.length ? `(${docs.length})` : "";
+  $("#copieTous").disabled = docs.length < 2;
+}
+
+// ---------- pdf.js embarqué
+let pdfjs = null;
+// bibliothèques stockées compressées (gzip) puis encodées en base64, pour alléger le fichier
+async function b64Blob(id, type) {
+  const el = document.getElementById(id);
+  const b = atob(el.textContent.trim());
+  const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+  let blob = new Blob([u]);
+  if (el.dataset.gzip) blob = await new Response(blob.stream().pipeThrough(new DecompressionStream("gzip"))).blob();
+  return URL.createObjectURL(new Blob([blob], { type }));
+}
+async function chargerPdfjs() {
+  if (pdfjs) return pdfjs;
+  pdfjs = await import(await b64Blob("lib-pdfjs", "text/javascript"));
+  const wurl = await b64Blob("lib-worker", "text/javascript");
+  try {
+    pdfjs.GlobalWorkerOptions.workerSrc = wurl;
+    const w = new pdfjs.PDFWorker({ name: "lecteur" });
+    await Promise.race([w.promise, new Promise((_, rej) => setTimeout(() => rej(new Error("worker")), 4000))]);
+    pdfjs.GlobalWorkerOptions.workerPort = w.port;
+  } catch (e) {
+    globalThis.pdfjsWorker = await import(wurl);
+  }
+  return pdfjs;
+}
+function status(msg, err) { const s = $("#status"); s.textContent = msg; s.className = err ? "err" : ""; }
+
+async function pagesDe(lib, data) {
+  const pdf = await lib.getDocument({ data }).promise;
+  const pages = [];
+  for (let i = 1; i <= pdf.numPages; i++) { const tc = await (await pdf.getPage(i)).getTextContent(); pages.push(lignesPdfjs(tc.items)); }
+  return { pdf, pages };
+}
+const PJ_IGNOREES = /confidentialit|\bnda\b|non.?disclosure|lettre d.engagement|engagement de confid|\bcgv\b|\bcgu\b|signature/i;
+async function lirePdfs(files) {
+  const lib = await chargerPdfjs();
+  let ok = 0; const infos = [];
+  for (const file of files) {
+    status(`Lecture de ${file.name}…`);
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      if (/\.(msg|eml)$/i.test(file.name) || (bytes[0] === 0xd0 && bytes[1] === 0xcf)) {
+        const info = MAIL.lireMail(file.name, bytes, window.CFB);
+        const resMail = extraire(lignesMail(info), DATA);
+        const pdfs = info.pj.filter((p) => /\.pdf$/i.test(p.nom) || /pdf/i.test(p.type || ""));
+        const gardes = pdfs.filter((p) => !PJ_IGNOREES.test(p.nom));
+        const ignores = info.pj.length - gardes.length;
+        const sujet = (info.sujet || file.name).replace(/^(tr|fw|fwd|re)\s*:\s*/i, "");
+        const lus = [];
+        for (const pj of gardes) {
+          try { const { pdf, pages } = await pagesDe(lib, pj.data.slice()); lus.push({ pj, pdf, fiches: analyserDocument(pages, DATA) }); }
+          catch (e) { console.error(e); infos.push(`PDF joint illisible : ${pj.nom}`); }
+        }
+        const unSeul = lus.length === 1 && lus[0].fiches.length === 1;
+        let premier = docs.length;
+        for (const { pj, pdf, fiches } of lus) for (const r of fiches) {
+          ajouterDossier(`✉ ${sujet} · ${pj.nom}${r.pageSource ? " · p. " + r.pageSource : ""}`, fusionnerMail(r, resMail, info, DATA, { unSeulActif: unSeul }), pdf); ok++;
+        }
+        if (!lus.length) { ajouterDossier(`✉ ${sujet}`, fusionnerMail(null, resMail, info, DATA, { unSeulActif: true }), null); ok++; }
+        if (ignores) infos.push(`${file.name} : ${ignores} pièce(s) jointe(s) non lue(s) (pas un PDF, ou engagement de confidentialité)`);
+        if (docs.length - premier > 1) { cur = premier; afficherDossier(); rendreApercu(); majListe(); }
+        continue;
+      }
+      const { pdf, pages } = await pagesDe(lib, bytes);
+      const fiches = analyserDocument(pages, DATA);
+      for (const r of fiches) { ajouterDossier(r.pageSource ? `${file.name} · p. ${r.pageSource}` : file.name, r, pdf); ok++; }
+      if (fiches.length > 1) { cur = docs.length - fiches.length; afficherDossier(); rendreApercu(); majListe(); }
+    } catch (e) { console.error(e); status(`Impossible de lire ${file.name} (protégé, abîmé ou format inconnu ?).`, true); }
+  }
+  if (ok) status(`${ok} dossier(s) créé(s). Vérifie les valeurs en jaune avant de copier.${infos.length ? " " + infos.join(". ") + "." : ""}`);
+}
+function ajouterDossier(nom, res, pdf) {
+  sauver();
+  docs.push({ nom, res, vals: {}, etats: {}, pdf, texte: res.texte });
+  cur = docs.length - 1;
+  afficherDossier(); rendreApercu(); majListe();
+  window.__resultat = res;
+}
+
+// ---------- aperçu et surlignage
+let rendu = { doc: null, scale: 1, pages: [] };
+async function rendreApercu() {
+  const zone = $("#apercu");
+  const d = docs[cur];
+  afficherTexte();
+  if (!d || !d.pdf) {
+    rendu = { doc: null, scale: 1, pages: [] };
+    zone.innerHTML = `<div class="vide">${d ? "Pas d'aperçu pour un texte collé." : "L'aperçu du PDF s'affichera ici. Clique sur « voir » à côté d'un champ pour retrouver l'endroit où la valeur a été lue."}</div>`;
+    return;
+  }
+  if (rendu.doc === d.pdf) { allerPage(d.res.pageSource); return; }
+  zone.innerHTML = "";
+  rendu = { doc: d.pdf, scale: 1, pages: [] };
+  const largeur = Math.max(300, zone.clientWidth - 24);
+  for (let i = 1; i <= d.pdf.numPages; i++) {
+    const page = await d.pdf.getPage(i);
+    if (rendu.doc !== d.pdf) return;          // un autre dossier a été choisi entre-temps
+    const base = page.getViewport({ scale: 1 });
+    const vp = page.getViewport({ scale: largeur / base.width });
+    const wrap = document.createElement("div"); wrap.className = "pg"; wrap.style.width = vp.width + "px"; wrap.style.height = vp.height + "px";
+    const cv = document.createElement("canvas"); const ratio = window.devicePixelRatio || 1;
+    cv.width = vp.width * ratio; cv.height = vp.height * ratio; cv.style.width = vp.width + "px"; cv.style.height = vp.height + "px";
+    wrap.appendChild(cv);
+    const num = document.createElement("span"); num.className = "num"; num.textContent = `p. ${i}`; wrap.appendChild(num);
+    zone.appendChild(wrap);
+    rendu.pages[i] = { wrap, vp };
+    await page.render({ canvasContext: cv.getContext("2d"), viewport: vp, transform: ratio !== 1 ? [ratio, 0, 0, ratio, 0, 0] : null }).promise;
+    if (i === docs[cur]?.res.pageSource) allerPage(i);
+  }
+}
+// affiche la page d'une fiche (deck multi-opportunités)
+function allerPage(n) {
+  if (!n) return;
+  const p = rendu.pages[n]; if (!p) return;
+  const zone = $("#apercu");
+  zone.scrollTo({ top: p.wrap.offsetTop - zone.offsetTop - 6 });
+}
+function surligner(loc) {
+  if (!loc) return;
+  montrer("apercu");
+  const p = rendu.pages[loc.page];
+  if (!p) { setTimeout(() => surligner(loc), 300); return; }
+  document.querySelectorAll(".hl").forEach((h) => h.remove());
+  const r = p.vp.convertToViewportRectangle([loc.x0 - 2, loc.y - loc.h * 0.3, loc.x1 + 2, loc.y + loc.h * 1.05]);
+  const x = Math.min(r[0], r[2]), y = Math.min(r[1], r[3]), w = Math.abs(r[2] - r[0]), h = Math.abs(r[3] - r[1]);
+  const hl = document.createElement("div"); hl.className = "hl";
+  Object.assign(hl.style, { left: x + "px", top: y + "px", width: Math.max(w, 20) + "px", height: Math.max(h, 10) + "px" });
+  p.wrap.appendChild(hl);
+  const zone = $("#apercu");
+  zone.scrollTo({ top: p.wrap.offsetTop - zone.offsetTop + y - zone.clientHeight / 3, behavior: "smooth" });
+}
+function montrer(quoi) {
+  const a = quoi === "apercu";
+  $("#apercu").style.display = a ? "block" : "none"; $("#texte").style.display = a ? "none" : "block"; $("#cherche").style.display = a ? "none" : "block";
+  $("#tA").className = a ? "on" : ""; $("#tT").className = a ? "" : "on";
+}
+function esc(s) { return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+function afficherTexte() {
+  const t = docs[cur]?.texte || "";
+  const q = $("#cherche").value.trim();
+  let h = esc(t);
+  if (q) { const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"); h = h.replace(re, (m) => `<mark>${m}</mark>`); }
+  $("#texte").innerHTML = h || "Le texte lu apparaîtra ici.";
+  const m = $("#texte mark"); if (m) m.scrollIntoView({ block: "center" });
+}
+
+// ---------- copie vers Excel (format français)
+function valeurExcel(k, v) {
+  const type = TYPES[k];
+  v = String(v ?? "").trim().replace(/[\t\r\n]+/g, " ");
+  if (!v) return "";
+  if (type === "euros" || type === "nombre") { const n = parseNum(v); return n === "" ? v : String(Math.round(n * 100) / 100).replace(".", ","); }
+  if (type === "pct") { let n = parseNum(v.replace("%", "")); if (n === "") return v; if (n > 1) n = n / 100; return String(Math.round(n * 1000) / 10).replace(".", ",") + "%"; }
+  return v;
+}
+const ligneExcel = (vals) => ORDRE_BASE.map((k) => (k === "photo" || k === "id" ? "" : valeurExcel(k, vals[k]))).join("\t");
+async function ecrire(txt, msg) {
+  try { await navigator.clipboard.writeText(txt); }
+  catch { const ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+  window.__derniereCopie = txt;
+  const toast = $("#toast"); toast.textContent = msg; setTimeout(() => (toast.textContent = ""), 6000);
+}
+$("#copie").onclick = () => {
+  if (cur < 0) { status("Charge d'abord un document.", true); return; }
+  sauver(); ecrire(ligneExcel(docs[cur].vals), "Copié : 1 ligne, colle-la en colonne A de la première ligne vide.");
+};
+$("#copieTous").onclick = () => {
+  sauver(); ecrire(docs.map((d) => ligneExcel(d.vals)).join("\r\n"), `Copié : ${docs.length} lignes, colle-les en colonne A de la première ligne vide.`);
+};
+
+// ---------- interactions
+construireTable(); majListe();
+const drop = $("#drop"), file = $("#file");
+drop.onclick = () => file.click();
+file.onchange = () => { if (file.files.length) lirePdfs([...file.files]); file.value = ""; };
+["dragenter", "dragover"].forEach((e) => drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((e) => drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", (ev) => {
+  const f = [...ev.dataTransfer.files].filter((x) => /\.(pdf|msg|eml)$/i.test(x.name));
+  if (f.length) lirePdfs(f);
+  else if (ev.dataTransfer.types.includes("FileGroupDescriptorW") || ev.dataTransfer.types.includes("FileGroupDescriptor")) status("Outlook ne transmet pas le mail directement au navigateur : glisse-le d'abord sur le Bureau, puis glisse le fichier .msg ici.", true);
+  else if (ev.dataTransfer.files.length) status("Format non pris en charge : PDF, .msg ou .eml uniquement.", true);
+});
+$("#analyserMail").onclick = () => {
+  const t = $("#mail").value; if (!t.trim()) return;
+  const info = { texte: t, sujet: "" };
+  ajouterDossier("Mail collé", fusionnerMail(null, extraire(lignesMail(info), DATA), info, DATA, { unSeulActif: true }), null);
+  status("Texte du mail analysé."); $("#mail").value = "";
+};
+$("#tA").onclick = () => montrer("apercu");
+$("#tT").onclick = () => montrer("texte");
+$("#cherche").oninput = afficherTexte;
+$("#reset").onclick = () => { docs.length = 0; cur = -1; viderChamps(); rendreApercu(); majListe(); status(""); };
+window.__lirePdfs = lirePdfs;
+
+// ---------- modales
+const ouvrir = (id) => $(id).classList.add("on");
+document.querySelectorAll(".modal").forEach((m) => {
+  m.addEventListener("click", (e) => { if (e.target === m || e.target.hasAttribute("data-ferme")) m.classList.remove("on"); });
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.querySelectorAll(".modal.on").forEach((m) => m.classList.remove("on")); });
+$("#btnAide").onclick = () => ouvrir("#mAide");
+$("#btnListes").onclick = () => { majResumeListes(); ouvrir("#mListes"); };
+
+// ---------- listes et contacts
+const CLES_LISTES = ["Statuts", "Typologies", "Secteurs", "Régime de détention", "Situation locative", "Apporteurs", "Mode de commercialisation", "Motif d'écart", "Responsables", "Véhicule d'investissement", "Type d'apporteur", "Priorité", "Définition du taux"];
+function majInfoListes() {
+  $("#listesInfo").textContent = LISTES_LOCALES?.date ? `Listes mises à jour le ${LISTES_LOCALES.date}` : DATA.__maj ? `Listes du ${DATA.__maj}` : "";
+}
+function majResumeListes() {
+  const n = (k) => (DATA[k] || []).length;
+  $("#lstResume").textContent = `Listes actuelles : ${n("Apporteurs")} apporteurs, ${(DATA.Contacts || []).length} contacts, ${n("Statuts")} statuts, ${n("Véhicule d'investissement")} véhicules d'investissement, ${n("Responsables")} responsables.`;
+}
+function majOptions() {
+  for (const [k, , type] of CHAMPS) {
+    if (!type.startsWith("liste:")) continue;
+    const el = $(`#f-${k}`), v = el.value;
+    el.innerHTML = `<option value=""></option>` + (DATA[type.slice(6)] || []).map((x) => `<option>${esc(x)}</option>`).join("");
+    el.value = v;
+  }
+  const dl = $("#dl-app"); if (dl) dl.innerHTML = (DATA.Apporteurs || []).map((a) => `<option value="${esc(a)}">`).join("");
+}
+$("#lstAppliquer").onclick = () => {
+  const etat = $("#lstEtat");
+  const L = $("#lstTxt").value.trim() ? lireListesCollees($("#lstTxt").value, CLES_LISTES) : null;
+  const C = $("#ctcTxt").value.trim() ? lireContactsColles($("#ctcTxt").value) : null;
+  if ($("#lstTxt").value.trim() && !L) { etat.textContent = "Titres de colonnes non reconnus : copie tout l'onglet Listes, ligne des titres comprise."; etat.style.color = "#C00000"; return; }
+  if ($("#ctcTxt").value.trim() && !C?.length) { etat.textContent = "Contacts non reconnus : il faut deux colonnes, Société et Nom."; etat.style.color = "#C00000"; return; }
+  if (!L && !C) return;
+  const ancien = LISTES_LOCALES || {};
+  LISTES_LOCALES = { listes: { ...(ancien.listes || {}), ...(L || {}) }, contacts: C?.length ? C : ancien.contacts || null, date: new Date().toLocaleDateString("fr-FR") };
+  try { localStorage.setItem("lecteurIM_listes", JSON.stringify(LISTES_LOCALES)); } catch {}
+  Object.assign(DATA, L || {}); if (C?.length) DATA.Contacts = C;
+  majOptions(); majInfoListes(); majResumeListes();
+  $("#lstTxt").value = ""; $("#ctcTxt").value = "";
+  etat.style.color = "#1E5B2C";
+  etat.textContent = `Appliqué : ${L ? Object.keys(L).length + " listes" : ""}${L && C ? ", " : ""}${C ? C.length + " contacts" : ""}. Les prochains documents lus en tiennent compte.`;
+};
+$("#lstReset").onclick = () => {
+  try { localStorage.removeItem("lecteurIM_listes"); } catch {}
+  location.reload();
+};
+$("#lstTelecharger").onclick = () => {
+  const d = { ...DATA, __maj: new Date().toLocaleDateString("fr-FR") };
+  const json = JSON.stringify(d).replace(/</g, "\\u003c");
+  const debut = '<script type="application/json" id="data-listes">';
+  const i = SOURCE.indexOf(debut), j = SOURCE.indexOf("</scr" + "ipt>", i);
+  if (i < 0 || j < 0) { $("#lstEtat").textContent = "Impossible de produire le fichier."; return; }
+  const html = SOURCE.slice(0, i + debut.length) + json + SOURCE.slice(j);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+  a.download = "Lecteur_info_memo.html"; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  $("#lstEtat").style.color = "#1E5B2C";
+  $("#lstEtat").textContent = "Fichier téléchargé : remplace l'ancien lecteur sur le serveur par celui-ci.";
+};
+majInfoListes();
+</script>
+
+<!-- =====================================================================
+     BIBLIOTHÈQUES (ne pas modifier) : cfb pour les mails Outlook, pdf.js pour les PDF
+     ===================================================================== -->
+<script>__CFB_JS__</script>
+<script type="text/plain" id="lib-pdfjs" data-gzip="1">__PDFJS_B64__</script>
+<script type="text/plain" id="lib-worker" data-gzip="1">__WORKER_B64__</script>
+</body>
+</html>

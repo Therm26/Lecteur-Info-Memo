@@ -1,0 +1,13 @@
+# Données réelles : ne jamais les publier
+listes.json
+reel*/
+prive/
+*.msg
+*.pdf
+*.eml
+!exemples/*.pdf
+!exemples/mails/*.eml
+
+node_modules/
+__pycache__/
+.DS_Store

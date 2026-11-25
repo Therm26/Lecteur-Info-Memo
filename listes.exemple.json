@@ -1,0 +1,102 @@
+{
+ "Statuts": [
+  "1 - Nouveau",
+  "2 - En analyse",
+  "3 - Intéressant",
+  "4 - Offre déposée",
+  "5 - Écarté",
+  "6 - Perdu / retiré"
+ ],
+ "Typologies": [
+  "Bureaux",
+  "Logistique",
+  "Locaux d'activité",
+  "Commerce",
+  "Résidentiel",
+  "Hôtellerie",
+  "Mixte",
+  "Autre"
+ ],
+ "Secteurs": [
+  "Paris QCA",
+  "Paris Centre Ouest hors QCA",
+  "Paris Rive Gauche",
+  "Paris Nord-Est",
+  "La Défense",
+  "Croissant Ouest (92)",
+  "Première couronne Nord (93)",
+  "Première couronne Est / Sud (94)",
+  "Deuxième couronne",
+  "Régions"
+ ],
+ "Régime de détention": [
+  "Pleine propriété",
+  "Copropriété",
+  "Volumes",
+  "Bail à construction"
+ ],
+ "Situation locative": [
+  "Vacant",
+  "Partiellement loué",
+  "Loué mono-locataire",
+  "Loué multi-locataires"
+ ],
+ "Apporteurs": [
+  "Arthur Loyd",
+  "BNP Paribas Real Estate",
+  "Catella",
+  "CBRE",
+  "Colliers",
+  "Cushman & Wakefield",
+  "Horizon Immobilier Conseil",
+  "JLL",
+  "Knight Frank",
+  "Rive Droite Partners",
+  "Réseau / apport interne",
+  "Savills",
+  "Vendeur en direct"
+ ],
+ "Mode de commercialisation": [
+  "Off market",
+  "Process restreint",
+  "Process large",
+  "Appel d'offres"
+ ],
+ "Motif d'écart": [
+  "Prix trop élevé",
+  "Localisation",
+  "Taille hors cible",
+  "Typologie hors cible",
+  "État technique / capex",
+  "Situation locative",
+  "Calendrier",
+  "Hors stratégie du fonds",
+  "Vendu à un tiers",
+  "Autre"
+ ],
+ "Responsables": [
+  "A. Martin",
+  "B. Durand",
+  "C. Moreau"
+ ],
+ "Contacts": [
+  {
+   "societe": "Horizon Immobilier Conseil",
+   "nom": "Claire DUPONT"
+  },
+  {
+   "societe": "Rive Droite Partners",
+   "nom": "Marc LEROY"
+  },
+  {
+   "societe": "Horizon Immobilier Conseil",
+   "nom": "Sophie MARTIN"
+  }
+ ],
+ "Véhicule d'investissement": [
+  "Fonds Value Add",
+  "Club deal",
+  "Mandat institutionnel",
+  "À définir"
+ ]
+}
